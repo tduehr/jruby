@@ -2482,7 +2482,7 @@ public class RubyModule extends RubyObject {
 
             boolean superclassSeen = false;
 
-            // nextClass.isIncluded() && nextClass.getNonIncludedClass() == nextModule.getNonIncludedClass();
+            // TODO flatten this with includeLocation
             // scan class hierarchy for module
             for (RubyClass nextClass = this.getSuperClass(); nextClass != null; nextClass = nextClass.getSuperClass()) {
                 if (doesTheClassWrapTheModule(nextClass, nextModule)) {
@@ -2598,7 +2598,7 @@ public class RubyModule extends RubyObject {
         }
         
         insertAbove.setSuperClass(wrapper);
-        insertAbove.setIncludeLocation(wrapper);
+        // insertAbove.setIncludeLocation(wrapper);
         insertAbove = insertAbove.getSuperClass();
         return insertAbove;
     }
@@ -2634,10 +2634,10 @@ public class RubyModule extends RubyObject {
             }
             insertBelowSuperClass = prep;
         } else {
-            insertBelowSuperClass = insertBelow.getSuperClass();
+            insertBelowSuperClass = (RubyClass)(insertBelow.getMethodLocation());
         }
-        insertBelow = proceedWithInclude(insertBelow, moduleToPrepend);
-
+        insertBelow = proceedWithInclude(insertBelowSuperClass.getIncludeLocation(), moduleToPrepend);
+        insertBelowSuperClass.setIncludeLocation(insertBelow);
         insertBelow.setSuperClass(insertBelowSuperClass);
         return insertBelowSuperClass;
     }
