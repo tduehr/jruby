@@ -1,10 +1,5 @@
 package org.jruby;
 
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-
-import org.jruby.internal.runtime.methods.DynamicMethod;
 import org.jruby.runtime.builtin.IRubyObject;
 
 public class IncludedModule extends RubyClass {
@@ -34,8 +29,9 @@ public class IncludedModule extends RubyClass {
         throw new UnsupportedOperationException("An included class is only a wrapper for a module");
     }
 
-    public void setMethods(Map newMethods) {
-        throw new UnsupportedOperationException("An included class is only a wrapper for a module");
+    @Override
+    public boolean hasPrepends() {
+        return origin.hasPrepends();
     }
 
     @Override
@@ -48,15 +44,16 @@ public class IncludedModule extends RubyClass {
         return origin;
     }
 
-    // @Override
-    // public RubyModule getNonPrependedClass() {
-    //     return origin;
-    // }
+    // XXX ??? maybe not getNonIncludedClass()
+    @Override
+    protected boolean isSame(RubyModule module) {
+        return module == null ? false : origin.isSame(module);
+    }
 
    /**
     * We don't want to reveal ourselves to Ruby code, so origin this
     * operation.
-    */    
+    */
     @Override
     public IRubyObject id() {
         return origin.id();

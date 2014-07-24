@@ -858,24 +858,24 @@ public class IRRuntimeHelpers {
         String methodName = context.getCurrentFrame().getName();
 
         checkSuperDisabledOrOutOfMethod(context, klazz, methodName);
-        RubyModule implMod = Helpers.findImplementerIfNecessary(self.getMetaClass(), klazz);
-        RubyClass superClass = implMod.getSuperClass();
-        DynamicMethod method = superClass != null ? superClass.searchMethod(methodName) : UndefinedMethod.INSTANCE;
-        // DynamicMethod method = superClass == null ? null : superClass.searchWithCache(methodName, false).method;
-        //
-        // if (method == null || !superClass.isIncluded()) {
-        //     for (RubyModule implClass = Helpers.findImplementerIfNecessary(self.getMetaClass(), klazz); implClass != null; implClass = Helpers.findImplementerIfNecessary(self.getMetaClass(), superClass)) {
-        //         superClass = implClass == null ? null : implClass.getSuperClass();
-        //
-        //         method = superClass != null ? superClass.searchWithCache(methodName, false).method : null;
-        //         if (!(method == null || method.isUndefined() ) || superClass == null) break;
-        //     }
-        // }
-        //
-        // method = method == null ? UndefinedMethod.getInstance() : method;
+
+        RubyClass superClass = klazz.getSuperClass();
+        DynamicMethod method = superClass == null ? null : superClass.searchWithCache(methodName, false).method;
+
+        if (method == null || !superClass.isIncluded()) {
+            for (RubyModule implClass = Helpers.findImplementerIfNecessary(self.getMetaClass(), klazz); implClass != null; implClass = Helpers.findImplementerIfNecessary(self.getMetaClass(), superClass)) {
+                superClass = implClass == null ? null : implClass.getSuperClass();
+
+                method = superClass != null ? superClass.searchWithCache(methodName, false).method : null;
+                if (!(method == null || method.isUndefined() ) || superClass == null) break;
+            }
+        }
+
+        method = method == null ? UndefinedMethod.getInstance() : method;
 
         IRubyObject rVal = null;
-        if (method.isUndefined()|| (superClass.isPrepended() && (method.getImplementationClass() == self.getType()))) {
+        // if (method.isUndefined()|| (superClass.isPrepended() && (method.getImplementationClass() == self.getType()))) {
+        if (method.isUndefined()) {
             rVal = Helpers.callMethodMissing(context, self, method.getVisibility(), methodName, CallType.SUPER, args, block);
         } else {
             rVal = method.call(context, self, superClass, methodName, args, block);
