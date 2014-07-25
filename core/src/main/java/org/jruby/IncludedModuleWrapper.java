@@ -84,12 +84,12 @@ public class IncludedModuleWrapper extends IncludedModule {
 
     @Override
     public Map<String, DynamicMethod> getMethods() {
-        return origin.methodLocation.getMethods();
+        return origin.getMethodLocation().getMethods();
     }
 
     @Override
     public Map<String, DynamicMethod> getMethodsForWrite() {
-        return origin.methodLocation.getMethodsForWrite();
+        return origin.getMethodLocation().getMethodsForWrite();
     }
 
     @Override
@@ -99,7 +99,7 @@ public class IncludedModuleWrapper extends IncludedModule {
 
     @Override
     public RubyModule getNonIncludedClass() {
-        return origin;
+        return origin.getNonIncludedClass();
     }
 
     @Override

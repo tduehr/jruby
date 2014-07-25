@@ -2476,7 +2476,7 @@ public class RubyModule extends RubyObject {
     private void doIncludeModule(RubyModule baseModule) {
         List<RubyModule> modulesToInclude = gatherModules(baseModule);
         
-        RubyModule currentInclusionPoint = this;
+        RubyModule currentInclusionPoint = getMethodLocation();
         ModuleLoop: for (RubyModule nextModule : modulesToInclude) {
             checkForCyclicInclude(nextModule);
 
@@ -2484,7 +2484,7 @@ public class RubyModule extends RubyObject {
 
             // TODO flatten this with includeLocation
             // scan class hierarchy for module
-            for (RubyClass nextClass = this.getSuperClass(); nextClass != null; nextClass = nextClass.getSuperClass()) {
+            for (RubyClass nextClass = getMethodLocation().getSuperClass(); nextClass != null; nextClass = nextClass.getSuperClass()) {
                 if (doesTheClassWrapTheModule(nextClass, nextModule)) {
                     // next in hierarchy is an included version of the module we're attempting,
                     // so we skip including it
@@ -2512,31 +2512,8 @@ public class RubyModule extends RubyObject {
      * @param baseModule The module to prepend, along with any modules it itself includes
      */
     private void doPrependModule(RubyModule baseModule) {
-        List<RubyModule> modulesToInclude = gatherModules(baseModule);
-
-        RubyModule currentInclusionPoint = this.getPrependLocation();
-        ModuleLoop: for (RubyModule nextModule : modulesToInclude) {
-            checkForCyclicInclude(nextModule);
-
-            // boolean superclassSeen = false;
-            //
-            // // scan class hierarchy for module
-            // for (RubyClass nextClass = this.getSuperClass(); nextClass != null; nextClass = nextClass.getSuperClass()) {
-            //     if (doesTheClassWrapTheModule(nextClass, nextModule)) {
-            //         // next in hierarchy is an included version of the module we're attempting,
-            //         // so we skip including it
-            //
-            //         // if we haven't encountered a real superclass, use the found module as the new inclusion point
-            //         if (!superclassSeen) currentInclusionPoint = nextClass;
-            //
-            //         continue ModuleLoop;
-            //     } else {
-            //         superclassSeen = true;
-            //     }
-            // }
-
-            this.setPrependLocation(proceedWithPrepend(currentInclusionPoint, nextModule));
-        }
+        checkForCyclicInclude(baseModule);
+        proceedWithPrepend(this, baseModule);
     }
 
     /**
@@ -2562,8 +2539,15 @@ public class RubyModule extends RubyObject {
     private List<RubyModule> gatherModules(RubyModule baseModule) {
         // build a list of all modules to consider for inclusion
         List<RubyModule> modulesToInclude = new ArrayList<RubyModule>();
+        RubyModule baseMethodLocation = baseModule.getMethodLocation();
+        // if (baseModule != baseMethodLocation) {
+        //     modulesToInclude.add(baseModule);
+        //     baseModule = baseMethodLocation;
+        // }
+
         while (baseModule != null) {
-            modulesToInclude.add(baseModule);
+            if (!baseModule.isPrepended())
+                modulesToInclude.add(baseModule);
             baseModule = baseModule.getSuperClass();
         }
 
@@ -2619,6 +2603,7 @@ public class RubyModule extends RubyObject {
             // IncludedModule, so there's no need to fish out the delegate. But just
             // in case the logic should change later, let's do it anyway
             RubyClass prep = new PrependedModule(getRuntime(), insertBelow.getSuperClass(), insertBelow);
+            insertBelow.setIncludeLocation(prep);
 
             // if the insertion point is a class, update subclass lists
             if (insertBelow instanceof RubyClass) {
@@ -2634,11 +2619,31 @@ public class RubyModule extends RubyObject {
             }
             insertBelowSuperClass = prep;
         } else {
-            insertBelowSuperClass = (RubyClass)(insertBelow.getMethodLocation());
+            insertBelowSuperClass = insertBelow.getSuperClass();
         }
-        insertBelow = proceedWithInclude(insertBelowSuperClass.getIncludeLocation(), moduleToPrepend);
-        insertBelowSuperClass.setIncludeLocation(insertBelow);
-        insertBelow.setSuperClass(insertBelowSuperClass);
+
+        List<RubyModule> modulesToPrepend = gatherModules(moduleToPrepend);
+
+        RubyModule currentInclusionPoint = insertBelow;
+        ModuleLoop: for (RubyModule nextModule : modulesToPrepend) {
+            checkForCyclicInclude(nextModule);
+
+            boolean superclassSeen = false;
+
+            if (nextModule.isPrepended())
+                continue ModuleLoop;
+
+            RubyModule newInclusionPoint = proceedWithInclude(currentInclusionPoint, nextModule.getNonIncludedClass());
+            // if (currentInclusionPoint instanceof RubyClass)
+            //     currentInclusionPoint.getSuperClass().replaceSubclass((RubyClass)currentInclusionPoint,(RubyClass)newInclusionPoint);
+
+            // This shouldn't be right but it's worse without it.
+            newInclusionPoint.setSuperClass(insertBelowSuperClass);
+            // newInclusionPoint.setSuperClass(insertBelow.getSuperClass());
+            // This line is wrong but simply commenting it out isn't enough. *Interesting* but not functionally better.
+            currentInclusionPoint = newInclusionPoint;
+        }
+
         return insertBelowSuperClass;
     }
 
