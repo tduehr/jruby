@@ -2623,6 +2623,7 @@ public class RubyModule extends RubyObject {
         }
 
         List<RubyModule> modulesToPrepend = gatherModules(moduleToPrepend);
+        Collections.reverse(modulesToPrepend);
 
         RubyModule currentInclusionPoint = insertBelow;
         ModuleLoop: for (RubyModule nextModule : modulesToPrepend) {
