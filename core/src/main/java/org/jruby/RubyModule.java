@@ -2025,8 +2025,8 @@ public class RubyModule extends RubyObject {
         Ruby runtime = getRuntime();
 
         for (RubyModule type = this; type != null; type = type.getSuperClass()) {
-            RubyModule realType = type.getNonIncludedClass();
-            for (Map.Entry entry : type.getMethods().entrySet()) {
+            RubyModule realType = type.getNonIncludedClass().getMethodLocation();
+            for (Map.Entry entry : type.getMethodLocation().getMethods().entrySet()) {
                 String methodName = (String) entry.getKey();
 
                 if (! seen.contains(methodName)) {
@@ -2546,12 +2546,38 @@ public class RubyModule extends RubyObject {
         // }
 
         while (baseModule != null) {
+            // baseModule = baseModule.getMethodLocation();
             if (!baseModule.isPrepended())
                 modulesToInclude.add(baseModule);
             baseModule = baseModule.getSuperClass();
         }
 
         return modulesToInclude;
+    }
+
+    private List<RubyModule> gatherModulesForPrepend(RubyModule baseModule) {
+        // build a list of all modules to consider for inclusion
+        List<RubyModule> modulesToPrepend = new ArrayList<RubyModule>();
+        RubyModule baseMethodLocation = baseModule.getMethodLocation();
+        if (baseMethodLocation.isPrepended()) {
+            RubyModule moduleToPrepend = baseModule.getSuperClass();
+            while (moduleToPrepend != null) {
+                if (!moduleToPrepend.isPrepended())
+                    modulesToPrepend.add(moduleToPrepend);
+                moduleToPrepend = moduleToPrepend.getSuperClass();
+            }
+            modulesToPrepend.add(baseModule);
+            baseModule = baseMethodLocation;
+            Collections.reverse(modulesToPrepend);
+        } else {
+            while (baseModule != null) {
+                if (!baseModule.isPrepended())
+                    modulesToPrepend.add(baseModule);
+                baseModule = baseModule.getSuperClass();
+            }
+        }
+
+        return modulesToPrepend;
     }
 
     /**
@@ -2582,7 +2608,6 @@ public class RubyModule extends RubyObject {
         }
         
         insertAbove.setSuperClass(wrapper);
-        // insertAbove.setIncludeLocation(wrapper);
         insertAbove = insertAbove.getSuperClass();
         return insertAbove;
     }
@@ -2598,7 +2623,7 @@ public class RubyModule extends RubyObject {
     private RubyModule proceedWithPrepend(RubyModule insertBelow, RubyModule moduleToPrepend) {
 
         RubyClass insertBelowSuperClass = null;
-        if (insertBelow.methodLocation == insertBelow) {
+        if (insertBelow.getMethodLocation() == insertBelow) {
             // In the current logic, if we getService here we know that module is not an
             // IncludedModule, so there's no need to fish out the delegate. But just
             // in case the logic should change later, let's do it anyway
@@ -2617,32 +2642,33 @@ public class RubyModule extends RubyObject {
 
                 prep.addSubclass(insertBelowClass);
             }
+            insertBelow.setSuperClass(prep);
             insertBelowSuperClass = prep;
         } else {
             insertBelowSuperClass = insertBelow.getSuperClass();
         }
 
-        List<RubyModule> modulesToPrepend = gatherModules(moduleToPrepend);
-        Collections.reverse(modulesToPrepend);
+        List<RubyModule> modulesToPrepend = gatherModulesForPrepend(moduleToPrepend);
+        // Collections.reverse(modulesToPrepend);
 
         RubyModule currentInclusionPoint = insertBelow;
         ModuleLoop: for (RubyModule nextModule : modulesToPrepend) {
             checkForCyclicInclude(nextModule);
 
-            boolean superclassSeen = false;
-
-            if (nextModule.isPrepended())
-                continue ModuleLoop;
+            // if (nextModule.isPrepended())
+            //     continue ModuleLoop;
 
             RubyModule newInclusionPoint = proceedWithInclude(currentInclusionPoint, nextModule.getNonIncludedClass());
             // if (currentInclusionPoint instanceof RubyClass)
             //     currentInclusionPoint.getSuperClass().replaceSubclass((RubyClass)currentInclusionPoint,(RubyClass)newInclusionPoint);
 
             // This shouldn't be right but it's worse without it.
-            newInclusionPoint.setSuperClass(insertBelowSuperClass);
+            // newInclusionPoint.setSuperClass(insertBelowSuperClass);
+            currentInclusionPoint.setSuperClass((RubyClass)newInclusionPoint);
             // newInclusionPoint.setSuperClass(insertBelow.getSuperClass());
+            // newInclusionPoint.setSuperClass(currentInclusionPoint.getSuperClass());
             // This line is wrong but simply commenting it out isn't enough. *Interesting* but not functionally better.
-            currentInclusionPoint = newInclusionPoint;
+            // currentInclusionPoint = newInclusionPoint;
         }
 
         return insertBelowSuperClass;

@@ -53,7 +53,6 @@ public class PrependedModule extends IncludedModule {
             DynamicMethod method = entry.getValue();
             method.setImplementationClass(this);
         }
-        includeLocation = origin;
     }
 
     @Override
