@@ -46,7 +46,7 @@ import org.jruby.runtime.builtin.Variable;
 public class PrependedModule extends IncludedModule {
     public PrependedModule(Ruby runtime, RubyClass superClass, RubyModule origin) {
         super(runtime, superClass, origin);
-        methods = origin.methods;
+        methods = origin.getMethodsForWrite();
         origin.methods = new ConcurrentHashMap<String, DynamicMethod>(0, 0.9f, 1);
         origin.methodLocation = this;
         for (Map.Entry<String, DynamicMethod> entry : methods.entrySet()) {

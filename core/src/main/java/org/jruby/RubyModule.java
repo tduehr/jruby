@@ -2561,7 +2561,7 @@ public class RubyModule extends RubyObject {
         RubyModule baseMethodLocation = baseModule.getMethodLocation();
         if (baseMethodLocation.isPrepended()) {
             RubyModule moduleToPrepend = baseModule.getSuperClass();
-            while (moduleToPrepend != null) {
+            while (moduleToPrepend != baseMethodLocation) {
                 if (!moduleToPrepend.isPrepended())
                     modulesToPrepend.add(moduleToPrepend);
                 moduleToPrepend = moduleToPrepend.getSuperClass();
