@@ -2025,8 +2025,8 @@ public class RubyModule extends RubyObject {
         Ruby runtime = getRuntime();
 
         for (RubyModule type = this; type != null; type = type.getSuperClass()) {
-            RubyModule realType = type.getNonIncludedClass().getMethodLocation();
-            for (Map.Entry entry : type.getMethodLocation().getMethods().entrySet()) {
+            RubyModule realType = type.getNonIncludedClass();
+            for (Map.Entry entry : type.getMethods().entrySet()) {
                 String methodName = (String) entry.getKey();
 
                 if (! seen.contains(methodName)) {
@@ -2042,7 +2042,7 @@ public class RubyModule extends RubyObject {
                 }
             }
 
-            if (!includeSuper) {
+            if (!includeSuper && type == methodLocation) {
                 break;
             }
         }
