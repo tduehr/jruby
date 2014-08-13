@@ -30,6 +30,7 @@ package org.jruby;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.ArrayList;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -37,22 +38,68 @@ import org.jruby.internal.runtime.methods.DynamicMethod;
 import org.jruby.runtime.builtin.IRubyObject;
 import org.jruby.runtime.builtin.Variable;
 
+// FIXME remove if still not needed for prepend (likely)
+
 /**
  * This class is used as an intermediate superclass for Module#prepend
  *
  * @see org.jruby.IncludedModuleWrapper
  * @see org.jruby.RubyModule
  */
-public class PrependedModule extends IncludedModule {
-    public PrependedModule(Ruby runtime, RubyClass superClass, RubyModule origin) {
+public class PrependedModuleWrapper extends IncludedModuleWrapper {
+
+    public PrependedModuleWrapper(Ruby runtime, RubyClass superClass, RubyModule origin) {
         super(runtime, superClass, origin);
-        methods = origin.getMethodsForWrite();
-        origin.methods = new ConcurrentHashMap<String, DynamicMethod>(0, 0.9f, 1);
-        origin.methodLocation = this;
-        for (Map.Entry<String, DynamicMethod> entry : methods.entrySet()) {
-            DynamicMethod method = entry.getValue();
-            method.setImplementationClass(this);
+    }
+
+    @Override
+    public DynamicMethod searchMethodInner(String name) {
+        DynamicMethod method = getMethods().get(name);
+        if (name.equals("m1")) {
+            System.out.println("searchMethodInner");
+            System.out.println(method);
         }
+        if (method != null) return method;
+        if (name.equals("m1"))
+            System.out.println(getSuperClass());
+        // if (self == origin)
+        //     return getSuperClass() == null ? null : getSuperClass().searchMethodInner(name);
+
+        return origin.searchMethod(name);
+    }
+
+    @Override
+    public List<IRubyObject> getPrependedAncestors() {
+        ArrayList<IRubyObject> list = new ArrayList<IRubyObject>();
+
+        System.out.println(getName());
+        RubyModule topModule = origin.getMethodLocation();
+
+        for (RubyModule module = origin.getSuperClass(); module != topModule; module = module.getSuperClass()) {
+            if(module.isPrepended()) {
+                list.addAll(module.getPrependedAncestors());
+            }
+
+            if(!module.isSingleton())
+                list.add(module.getNonIncludedClass());
+        }
+
+        if(!topModule.isSingleton())
+            list.add(topModule.getNonIncludedClass());
+
+        return list;
+    }
+
+    @Override
+    public boolean hasModuleInPrepends(RubyModule type) {
+        RubyModule topModule = origin.getMethodLocation();
+
+        for (RubyModule module = origin; module != this; module = module.getSuperClass()) {
+            if (module.isSame(type) || module.hasModuleInPrepends(type))
+                return true;
+        }
+
+        return false;
     }
 
     @Override
@@ -60,8 +107,8 @@ public class PrependedModule extends IncludedModule {
         return false;
     }
 
-    // @Override
-    // public boolean isPrepended() {
-    //     return true;
-    // }
+    @Override
+    public boolean isPrepended() {
+        return true;
+    }
 }

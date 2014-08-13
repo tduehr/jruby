@@ -32,7 +32,9 @@
  ***** END LICENSE BLOCK *****/
 package org.jruby;
 
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -78,8 +80,65 @@ public class IncludedModuleWrapper extends IncludedModule {
     }
 
     @Override
+    public DynamicMethod searchMethodInner(String name) {
+        DynamicMethod method = null;
+
+        for(RubyModule module = origin; module != null && module != this; module = module.getSuperClass()) {
+            if (module.isPrepended()) {
+                method = module.searchMethodInner(name);
+            } else {
+                method = module.getMethods().get(name);
+            }
+            if (method != null) return method;
+        }
+
+        return super.searchMethodInner(name);
+    }
+
+    @Override
+    public List<IRubyObject> getPrependedAncestors() {
+        if(!origin.hasPrepends()) return Collections.EMPTY_LIST;
+
+        ArrayList<IRubyObject> list = new ArrayList<IRubyObject>();
+
+        System.out.println(getName());
+        RubyModule topModule = origin.getMethodLocation();
+
+        for (RubyModule module = origin.getSuperClass(); module != topModule && module != null; module = module.getSuperClass()) {
+            if(module.isPrepended()) {
+                list.addAll(module.getPrependedAncestors());
+            }
+
+            if(!module.isSingleton() && !module.hasPrepends())
+                list.add(module.getNonIncludedClass());
+        }
+
+        if(!topModule.isSingleton() && !topModule.hasPrepends())
+            list.add(topModule.getNonIncludedClass());
+
+        return list;
+    }
+
+    @Override
+    public boolean hasModuleInPrepends(RubyModule type) {
+        RubyModule topModule = origin.getMethodLocation();
+
+        for (RubyModule module = origin; module != null && module != this; module = module.getSuperClass()) {
+            if (module.getNonIncludedClass() == type.getNonIncludedClass() || module.hasModuleInPrepends(type))
+                return true;
+        }
+
+        return false;
+    }
+
+    @Override
     public boolean isIncluded() {
-        return true;
+        return origin.getMethodLocation().getSuperClass() != this;
+    }
+
+    @Override
+    public boolean isPrepended() {
+        return origin.hasPrepends();
     }
 
     @Override

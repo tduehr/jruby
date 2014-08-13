@@ -44,6 +44,16 @@ public class IncludedModule extends RubyClass {
     }
 
     @Override
+    public List<IRubyObject> getPrependedAncestors() {
+        return origin.getPrependedAncestors();
+    }
+
+    @Override
+    public boolean hasPrepends() {
+        return origin.hasPrepends();
+    }
+
+    @Override
     public String getName() {
         return origin.getName();
     }

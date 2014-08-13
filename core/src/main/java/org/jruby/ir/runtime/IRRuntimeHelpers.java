@@ -511,9 +511,14 @@ public class IRRuntimeHelpers {
         String methodName = context.getCurrentFrame().getName();
 
         checkSuperDisabledOrOutOfMethod(context, klazz, methodName);
-        RubyClass superClass = Helpers.findImplementerIfNecessary(self.getMetaClass(), klazz).getSuperClass();
+
+        RubyModule implClass = Helpers.findImplementerIfNecessary(self.getMetaClass(), klazz);
+        RubyClass superClass = implClass.getSuperClass();
+
         DynamicMethod method = superClass != null ? superClass.searchMethod(methodName) : UndefinedMethod.INSTANCE;
 
+        if (methodName.equals("m1"))
+            System.out.println(superClass.getClass());
         // TODO tduehr 7/2014 There has to be a better way to break the recursion
         IRubyObject rVal = (method.isUndefined()) ? Helpers.callMethodMissing(context, self, method.getVisibility(), methodName, CallType.SUPER, args, block)
                 : method.call(context, self, superClass, methodName, args, block);
