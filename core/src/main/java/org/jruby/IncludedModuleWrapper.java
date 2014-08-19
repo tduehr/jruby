@@ -130,6 +130,16 @@ public class IncludedModuleWrapper extends IncludedModule {
     }
 
     @Override
+    public boolean hasModuleInHierarchy(RubyModule type) {
+        for (RubyModule module = origin; module != null; module = module.getSuperClass()) {
+            if (module.getNonIncludedClass() == type.getNonIncludedClass() || (module.isPrepended() && module.hasModuleInHierarchy(type)))
+                return true;
+        }
+
+        return false;
+    }
+
+    @Override
     public boolean isIncluded() {
         return true;
     }
