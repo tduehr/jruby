@@ -337,10 +337,8 @@ public class RubyModule extends RubyObject {
     }
 
     protected void checkForCyclicPrepend(RubyModule m) throws RaiseException {
-        for (RubyModule module = this; module != null; module = module.getSuperClass()) {
-            if (module.getNonIncludedClass() == m.getNonIncludedClass() || module.hasModuleInPrepends(m))
-                throw getRuntime().newArgumentError(getName() + " cyclic prepend detected " + m.getName());
-        }
+        if (m.hasModuleInPrepends(this))
+            throw getRuntime().newArgumentError(getName() + " cyclic prepend detected " + m.getName());
     }
 
     private RubyClass searchProvidersForClass(String name, RubyClass superClazz) {
@@ -604,8 +602,9 @@ public class RubyModule extends RubyObject {
 
         RubyModule module = (RubyModule) arg;
 
-        // Make sure the module we prepend does not already exist
-        // checkForCyclicPrepend(module);
+        checkForCyclicPrepend(module);
+
+        if (hasModuleInHierarchy((RubyModule)arg)) return;
 
         infectBy(module);
 
@@ -634,6 +633,8 @@ public class RubyModule extends RubyObject {
             throw getRuntime().newTypeError("Wrong argument type " + arg.getMetaClass().getName() +
                     " (expected Module).");
         }
+
+        if (hasModuleInPrepends(((RubyModule)arg).getNonIncludedClass())) return;
 
         RubyModule module = (RubyModule) arg;
 
@@ -1790,6 +1791,12 @@ public class RubyModule extends RubyObject {
     }
 
     public boolean hasModuleInPrepends(RubyModule type) {
+        RubyModule methLoc = getMethodLocation();
+        if (this == methLoc)
+            return false;
+        for (RubyModule module = this; module != methLoc; module = module.getSuperClass()) {
+            if (type == module || ((hasPrepends() || module.isIncluded()) && module.hasModuleInHierarchy(type))) return true;
+        }
         return false;
     }
 
@@ -1799,7 +1806,7 @@ public class RubyModule extends RubyObject {
         // one instance bound to a given type/constant. If it's found to be unsafe, examine ways
         // to avoid the == call.
         for (RubyModule module = this; module != null; module = module.getSuperClass()) {
-            if (module.getNonIncludedClass() == type.getNonIncludedClass() || module.hasModuleInPrepends(type))
+            if (module.getNonIncludedClass() == type.getNonIncludedClass() || module.isPrepended() && module.hasModuleInHierarchy(type))
                 return true;
         }
 
@@ -2533,7 +2540,7 @@ public class RubyModule extends RubyObject {
 
             // TODO flatten this with includeLocation
             // scan class hierarchy for module
-            for (RubyClass nextClass = getMethodLocation().getSuperClass(); nextClass != null; nextClass = nextClass.getSuperClass()) {
+            for (RubyClass nextClass = getMethodLocation().getSuperClass(); nextClass != null; nextClass = nextClass.getMethodLocation().getSuperClass()) {
                 if (doesTheClassWrapTheModule(nextClass, nextModule)) {
                     // next in hierarchy is an included version of the module we're attempting,
                     // so we skip including it
@@ -2561,7 +2568,7 @@ public class RubyModule extends RubyObject {
      * @param baseModule The module to prepend, along with any modules it itself includes
      */
     private void doPrependModule(RubyModule baseModule) {
-        // checkForCyclicPrepend(baseModule);
+        checkForCyclicPrepend(baseModule);
         proceedWithPrepend(this, baseModule);
     }
 
@@ -2596,9 +2603,10 @@ public class RubyModule extends RubyObject {
 
         while (baseModule != null) {
             // baseModule = baseModule.getMethodLocation();
-            if (!baseModule.isPrepended())
+            //FIXME there has to be a better way...
+            if (!(baseModule instanceof PrependedModule))
                 modulesToInclude.add(baseModule);
-            baseModule = baseModule.getSuperClass();
+            baseModule = baseModule.getMethodLocation().getSuperClass();
         }
 
         return modulesToInclude;
@@ -2672,7 +2680,7 @@ public class RubyModule extends RubyObject {
     private RubyModule proceedWithPrepend(RubyModule insertBelow, RubyModule moduleToPrepend) {
 
         RubyClass insertBelowSuperClass = null;
-        if (insertBelow.getMethodLocation() == insertBelow) {
+        if (insertBelow.getMethodLocation() == insertBelow.getNonIncludedClass()) {
             // In the current logic, if we getService here we know that module is not an
             // IncludedModule, so there's no need to fish out the delegate. But just
             // in case the logic should change later, let's do it anyway
@@ -2685,8 +2693,8 @@ public class RubyModule extends RubyObject {
 
                 // if there's a non-null superclass, we're including into a normal class hierarchy;
                 // update subclass relationships to avoid stale parent/child relationships
-                if (insertBelowClass.getSuperClass() != null) {
-                    insertBelowClass.getSuperClass().replaceSubclass(insertBelowClass, prep);
+                if (prep.getSuperClass() != null) {
+                    prep.getSuperClass().replaceSubclass(insertBelowClass, prep);
                 }
 
                 prep.addSubclass(insertBelowClass);
@@ -2699,11 +2707,7 @@ public class RubyModule extends RubyObject {
 
         RubyModule currentInclusionPoint = insertBelow;
 
-        currentInclusionPoint.checkForCyclicInclude(moduleToPrepend);
-
         RubyModule newInclusionPoint = proceedWithInclude(currentInclusionPoint, moduleToPrepend.getNonIncludedClass());
-
-        currentInclusionPoint.setSuperClass((RubyClass)newInclusionPoint);
 
         return insertBelowSuperClass;
     }

@@ -121,10 +121,8 @@ public class IncludedModuleWrapper extends IncludedModule {
 
     @Override
     public boolean hasModuleInPrepends(RubyModule type) {
-        RubyModule topModule = origin.getMethodLocation();
-
-        for (RubyModule module = origin; module != null && module != this; module = module.getSuperClass()) {
-            if (module.getNonIncludedClass() == type.getNonIncludedClass() || module.hasModuleInPrepends(type))
+        for (RubyModule module = origin; module != null; module = module.getSuperClass()) {
+            if (module.getNonIncludedClass() == type.getNonIncludedClass() || (module.isPrepended() && module.hasModuleInHierarchy(type)))
                 return true;
         }
 
@@ -133,7 +131,7 @@ public class IncludedModuleWrapper extends IncludedModule {
 
     @Override
     public boolean isIncluded() {
-        return origin.getMethodLocation().getSuperClass() != this;
+        return true;
     }
 
     @Override
