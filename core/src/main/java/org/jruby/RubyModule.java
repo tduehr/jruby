@@ -1224,12 +1224,27 @@ public class RubyModule extends RubyObject {
      * Find the given class in this hierarchy, considering modules along the way.
      * 
      * @param clazz the class to find
-     * @return The method, or UndefinedMethod if not found
+     * @return The module, or null if not found
      */
     public RubyModule findImplementer(RubyModule clazz) {
         RubyModule clazzMethodLocation = clazz.getMethodLocation();
-        for (RubyModule module = this; module != null; module = module.getSuperClass()) {
-            if (module.isSame(clazz)) return module;
+        for (RubyModule module = this.getNonIncludedClass(); module != null; module = module.getSuperClass()) {
+            if (module.isSame(clazz)) {
+                return module;
+            }
+            if (module.isPrepended() && module.hasModuleInPrepends(clazz)) {
+                module = module.findImplementer(clazz);
+                if (module != null) {
+                    return module;
+                }
+
+                for(RubyModule current = module.getNonIncludedClass(); current != this && current != null; current = current.getSuperClass()) {
+                    if (current.isSame(clazz)) {
+                        return current;
+                    }
+                }
+                return module;
+            }
         }
 
         return null;

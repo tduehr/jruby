@@ -120,6 +120,32 @@ public class IncludedModuleWrapper extends IncludedModule {
     }
 
     @Override
+    public RubyModule findImplementer(RubyModule clazz) {
+
+        RubyModule clazzMethodLocation = clazz.getMethodLocation();
+        for (RubyModule module = origin; module != null; module = module.getSuperClass()) {
+            if (module.isSame(clazz)) {
+                return module;
+            }
+            if (module.isPrepended() && module.hasModuleInPrepends(clazz)) {
+                module = module.findImplementer(clazz);
+                if (module != null) {
+                    return module;
+                }
+
+                for(RubyModule current = module.getNonIncludedClass(); current != this && current != null; current = current.getSuperClass()) {
+                    if (current.isSame(clazz)) {
+                        return current;
+                    }
+                }
+                return module;
+            }
+        }
+
+        return null;
+    }
+
+    @Override
     public boolean hasModuleInPrepends(RubyModule type) {
         for (RubyModule module = origin; module != null; module = module.getSuperClass()) {
             if (module.getNonIncludedClass() == type.getNonIncludedClass() || (module.isPrepended() && module.hasModuleInHierarchy(type)))
