@@ -134,7 +134,7 @@ public class InterpretedIRMethod extends DynamicMethod implements IRMethodArgs, 
     protected void pre(ThreadContext context, IRubyObject self, String name, Block block) {
         // update call stacks (push: frame, class, scope, etc.)
         StaticScope ss = method.getStaticScope();
-        context.preMethodFrameAndClass(getImplementationClass(), name, self, block, ss);
+        context.preMethodFrameAndClass(getImplementationClass().getMethodLocation(), name, self, block, ss);
         if (this.pushScope) {
             context.pushScope(DynamicScope.newDynamicScope(ss));
         }
@@ -176,7 +176,7 @@ public class InterpretedIRMethod extends DynamicMethod implements IRMethodArgs, 
                     Method scriptMethod = compiled.getMethod("__script__", ThreadContext.class,
                             StaticScope.class, IRubyObject.class, IRubyObject[].class, Block.class);
                     MethodHandle handle = MethodHandles.publicLookup().unreflect(scriptMethod);
-                    box.actualMethod = new CompiledIRMethod(handle, getName(), getFile(), getLine(), method.getStaticScope(), getVisibility(), getImplementationClass(), Helpers.encodeParameterList(getParameterList()), method.hasExplicitCallProtocol());
+                    box.actualMethod = new CompiledIRMethod(handle, getName(), getFile(), getLine(), method.getStaticScope(), getVisibility(), getImplementationClass().getMethodLocation(), Helpers.encodeParameterList(getParameterList()), method.hasExplicitCallProtocol());
 
                     if (config.isJitLogging()) {
                         LOG.info("done jitting: " + method);

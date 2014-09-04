@@ -179,7 +179,7 @@ public class IRRuntimeHelpers {
         Ruby runtime = context.runtime;
         StaticScope parentScope = currDynScope.getStaticScope();
 
-        RubyModule containingClass = IRRuntimeHelpers.findInstanceMethodContainer(context, currDynScope, self);
+        RubyModule containingClass = IRRuntimeHelpers.findInstanceMethodContainer(context, currDynScope, self).getMethodLocation();
         Visibility currVisibility = context.getCurrentVisibility();
         Visibility newVisibility = Helpers.performNormalMethodChecksAndDetermineVisibility(runtime, containingClass, rubyName, currVisibility);
 
@@ -512,16 +512,22 @@ public class IRRuntimeHelpers {
 
         checkSuperDisabledOrOutOfMethod(context, klazz, methodName);
 
-        RubyModule implClass = Helpers.findImplementerIfNecessary(self.getMetaClass(), klazz);
-        RubyClass superClass = implClass.getSuperClass();
+        RubyClass superClass = klazz.getSuperClass();
+        DynamicMethod method = superClass == null ? null : superClass.searchMethod(methodName);
 
-        DynamicMethod method = superClass != null ? superClass.searchMethod(methodName) : UndefinedMethod.INSTANCE;
+        if (method == null || !superClass.isIncluded()) {
+            RubyModule implClass = Helpers.findImplementerIfNecessary(self.getMetaClass(), klazz);
+            superClass = implClass == null ? null : implClass.getSuperClass();
 
-        if (methodName.equals("m1"))
-            System.out.println(superClass.getClass());
-        // TODO tduehr 7/2014 There has to be a better way to break the recursion
-        IRubyObject rVal = (method.isUndefined()) ? Helpers.callMethodMissing(context, self, method.getVisibility(), methodName, CallType.SUPER, args, block)
-                : method.call(context, self, superClass, methodName, args, block);
+            method = superClass != null ? superClass.searchMethod(methodName) : UndefinedMethod.INSTANCE;
+        }
+
+        IRubyObject rVal = null;
+        if (method.isUndefined()) {
+            rVal = Helpers.callMethodMissing(context, self, method.getVisibility(), methodName, CallType.SUPER, args, block);
+        } else {
+            rVal = method.call(context, self, superClass, methodName, args, block);
+        }
 
         return rVal;
     }

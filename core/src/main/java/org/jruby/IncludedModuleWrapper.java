@@ -35,10 +35,13 @@ package org.jruby;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.jruby.internal.runtime.methods.DynamicMethod;
+import org.jruby.runtime.Visibility;
 import org.jruby.runtime.builtin.IRubyObject;
 import org.jruby.runtime.builtin.Variable;
 
@@ -80,19 +83,46 @@ public class IncludedModuleWrapper extends IncludedModule {
     }
 
     @Override
-    public DynamicMethod searchMethodInner(String name) {
+    public void addMethod(String name, DynamicMethod method) {
+        throw new UnsupportedOperationException("An included class is only a wrapper for a module");
+    }
+
+    public void setMethods(Map newMethods) {
+        throw new UnsupportedOperationException("An included class is only a wrapper for a module");
+    }
+
+    @Override
+    public DynamicMethod searchMethodCommon(String name) {
         DynamicMethod method = null;
 
-        for(RubyModule module = origin; module != null && module != this; module = module.getSuperClass()) {
-            if (module.isPrepended()) {
-                method = module.searchMethodInner(name);
-            } else {
-                method = module.getMethods().get(name);
-            }
+        for(RubyModule module = origin; module != null; module = module.getSuperClass()) {
+            method = module.searchMethodCommon(name);
             if (method != null) return method;
         }
 
-        return super.searchMethodInner(name);
+        return null;
+    }
+
+    @Override
+    public void populateInstanceMethodNames(Set<String> seen, RubyArray ary, final Visibility visibility, boolean not, boolean useSymbols, boolean includeSuper) {
+        origin.populateInstanceMethodNames(seen, ary, visibility, not, useSymbols, true);
+    }
+
+    @Override
+    public void getPrependedAncestorsInner(List<IRubyObject> list) {
+        RubyModule topModule = origin.getMethodLocation();
+
+        for (RubyModule module = origin.getSuperClass(); module != topModule && module != null; module = module.getSuperClass()) {
+            if(module.isPrepended()) {
+                module.getPrependedAncestorsInner(list);
+            }
+
+            if(!module.isSingleton() && !module.hasPrepends())
+                list.add(module.getNonIncludedClass());
+        }
+
+        if(!topModule.isSingleton() && !topModule.hasPrepends())
+            list.add(topModule.getNonIncludedClass());
     }
 
     @Override
@@ -101,12 +131,11 @@ public class IncludedModuleWrapper extends IncludedModule {
 
         ArrayList<IRubyObject> list = new ArrayList<IRubyObject>();
 
-        System.out.println(getName());
         RubyModule topModule = origin.getMethodLocation();
 
         for (RubyModule module = origin.getSuperClass(); module != topModule && module != null; module = module.getSuperClass()) {
             if(module.isPrepended()) {
-                list.addAll(module.getPrependedAncestors());
+                module.getPrependedAncestorsInner(list);
             }
 
             if(!module.isSingleton() && !module.hasPrepends())
@@ -121,34 +150,38 @@ public class IncludedModuleWrapper extends IncludedModule {
 
     @Override
     public RubyModule findImplementer(RubyModule clazz) {
+        RubyModule retVal = null;
 
         RubyModule clazzMethodLocation = clazz.getMethodLocation();
         for (RubyModule module = origin; module != null; module = module.getSuperClass()) {
-            if (module.isSame(clazz)) {
-                return module;
+            if (!module.isPrepended() && module.isSame(clazz)) {
+                retVal = module.getSuperClass() == null ? this : module;
+                break;
             }
+
             if (module.isPrepended() && module.hasModuleInPrepends(clazz)) {
-                module = module.findImplementer(clazz);
-                if (module != null) {
-                    return module;
+                retVal = module.findImplementer(clazz);
+                if (retVal != null) {
+                    retVal = retVal.getSuperClass() != null ? retVal : this;
+                    break;
                 }
 
                 for(RubyModule current = module.getNonIncludedClass(); current != this && current != null; current = current.getSuperClass()) {
                     if (current.isSame(clazz)) {
-                        return current;
+                        return current.getSuperClass() == null ? module : current;
                     }
                 }
-                return module;
+                break;
             }
         }
 
-        return null;
+        return retVal;
     }
 
     @Override
     public boolean hasModuleInPrepends(RubyModule type) {
         for (RubyModule module = origin; module != null; module = module.getSuperClass()) {
-            if (module.getNonIncludedClass() == type.getNonIncludedClass() || (module.isPrepended() && module.hasModuleInHierarchy(type)))
+            if (module.getNonIncludedClass() == type.getNonIncludedClass() || (module.isIncluded() && module.hasModuleInHierarchy(type)))
                 return true;
         }
 
@@ -158,10 +191,31 @@ public class IncludedModuleWrapper extends IncludedModule {
     @Override
     public boolean hasModuleInHierarchy(RubyModule type) {
         for (RubyModule module = origin; module != null; module = module.getSuperClass()) {
-            if (module.getNonIncludedClass() == type.getNonIncludedClass() || (module.isPrepended() && module.hasModuleInHierarchy(type)))
+            if (module.getNonIncludedClass() == type.getNonIncludedClass() || (module.isIncluded() && module.hasModuleInHierarchy(type)))
                 return true;
         }
 
+        return false;
+    }
+
+    @Override
+    public IRubyObject fetchConstant(String name, boolean includePrivate) {
+        for (RubyModule module = origin; module != null; module = module.getSuperClass()) {
+            IRubyObject value = module.fetchConstant(name, includePrivate);
+
+            if (value != null) {
+                return value == UNDEF ? resolveUndefConstant(name) : value;
+            }
+        }
+        return null;
+    }
+
+    @Override
+    protected boolean hasConstantInHierarchy(final String name) {
+        for (RubyModule module = origin; module != null; module = module.getSuperClass()) {
+            if (module.hasConstant(name))
+                return true;
+        }
         return false;
     }
 
@@ -264,12 +318,38 @@ public class IncludedModuleWrapper extends IncludedModule {
     
     @Override
     public Collection<String> getConstantNames() {
-        return origin.getConstantNames();
+        Collection<String> names = new HashSet<String>(origin.getConstantMap().size());
+
+        for (RubyModule module = origin; module != null; module = module.getSuperClass()) {
+            module.getConstantNamesInner(names);
+        }
+
+        return names;
+    }
+
+    @Override
+    public void getConstantNamesInner(Collection<String> names) {
+        for (RubyModule module = origin; module != null; module = module.getSuperClass()) {
+            module.getConstantNamesInner(names);
+        }
     }
 
     @Override
     public Collection<String> getConstantNames(boolean includePrivate) {
-        return origin.getConstantNames(includePrivate);
+        Collection<String> names = new HashSet<String>(origin.getConstantMap().size());
+
+        for (RubyModule module = origin; module != null; module = module.getSuperClass()) {
+            module.getConstantNamesInner(names, includePrivate);
+        }
+
+        return names;
+    }
+
+    @Override
+    public void getConstantNamesInner(Collection<String> names, boolean includePrivate) {
+        for (RubyModule module = origin; module != null; module = module.getSuperClass()) {
+            module.getConstantNamesInner(names, includePrivate);
+        }
     }
 
     @Override

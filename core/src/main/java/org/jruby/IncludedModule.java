@@ -35,20 +35,6 @@ public class IncludedModule extends RubyClass {
     }
 
     @Override
-    public void addMethod(String name, DynamicMethod method) {
-        throw new UnsupportedOperationException("An included class is only a wrapper for a module");
-    }
-
-    public void setMethods(Map newMethods) {
-        throw new UnsupportedOperationException("An included class is only a wrapper for a module");
-    }
-
-    @Override
-    public List<IRubyObject> getPrependedAncestors() {
-        return origin.getPrependedAncestors();
-    }
-
-    @Override
     public boolean hasPrepends() {
         return origin.hasPrepends();
     }
@@ -68,7 +54,7 @@ public class IncludedModule extends RubyClass {
     protected boolean isSame(RubyModule module) {
         return origin.isSame(module.getNonIncludedClass());
     }
-    
+
    /**
     * We don't want to reveal ourselves to Ruby code, so origin this
     * operation.

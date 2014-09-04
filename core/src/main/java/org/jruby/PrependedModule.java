@@ -34,6 +34,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.jruby.internal.runtime.methods.DynamicMethod;
+import org.jruby.internal.runtime.methods.WrapperMethod;
 import org.jruby.runtime.builtin.IRubyObject;
 import org.jruby.runtime.builtin.Variable;
 
@@ -46,22 +47,28 @@ import org.jruby.runtime.builtin.Variable;
 public class PrependedModule extends IncludedModule {
     public PrependedModule(Ruby runtime, RubyClass superClass, RubyModule origin) {
         super(runtime, superClass, origin);
-        methods = origin.getMethodsForWrite();
-        origin.methods = new ConcurrentHashMap<String, DynamicMethod>(0, 0.9f, 1);
+
         origin.methodLocation = this;
-        for (Map.Entry<String, DynamicMethod> entry : methods.entrySet()) {
+        for (Map.Entry<String, DynamicMethod> entry : origin.getMethodsForWrite().entrySet()) {
             DynamicMethod method = entry.getValue();
-            method.setImplementationClass(this);
+            addMethod(entry.getKey(), new WrapperMethod(this, method, method.getVisibility()));
         }
+
+        origin.methods = new ConcurrentHashMap<String, DynamicMethod>(0, 0.9f, 1);
+    }
+
+    @Override
+    protected void putMethod(String name, DynamicMethod method) {
+        getMethodsForWrite().put(name, new WrapperMethod(this, method, method.getVisibility()));
+    }
+
+    @Override
+    public void addMethod(String name, DynamicMethod method) {
+        super.addMethod(name, new WrapperMethod(this, method, method.getVisibility()));
     }
 
     @Override
     public boolean hasPrepends() {
         return false;
     }
-
-    // @Override
-    // public boolean isPrepended() {
-    //     return true;
-    // }
 }
