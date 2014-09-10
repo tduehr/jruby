@@ -1219,7 +1219,7 @@ public class RubyModule extends RubyObject {
         RubyModule start = hasPrepends() ? getSuperClass() : this;
 
         for (RubyModule module = start; module != null; module = module.getSuperClass()) {
-            if ((module.isIncluded() && !(module.isPrepended()) && module.isSame(clazz)) || module == clazz) {
+            if ((module.isIncluded() && !(module.isPrepended()) && module.hasModuleInHierarchy(clazz)) || module == clazz) {
                 retVal = module;
                 break;
             }
