@@ -94,8 +94,9 @@ public class IncludedModuleWrapper extends IncludedModule {
     @Override
     public DynamicMethod searchMethodCommon(String name) {
         DynamicMethod method = null;
+        RubyModule topModule = origin.getMethodLocation().getSuperClass();
 
-        for(RubyModule module = origin; module != null; module = module.getSuperClass()) {
+        for(RubyModule module = origin; module != topModule; module = module.getSuperClass()) {
             method = module.searchMethodCommon(name);
             if (method != null) return method;
         }
