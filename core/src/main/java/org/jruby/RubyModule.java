@@ -1129,7 +1129,7 @@ public class RubyModule extends RubyObject {
 
     private CacheEntry addToCache(String name, DynamicMethod method, int token) {
         CacheEntry entry = cacheEntryFactory.newCacheEntry(name, method, token);
-        methodLocation.getCachedMethodsForWrite().put(name, entry);
+        getCachedMethodsForWrite().put(name, entry);
 
         return entry;
     }
