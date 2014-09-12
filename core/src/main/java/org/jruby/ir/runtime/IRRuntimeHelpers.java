@@ -690,6 +690,7 @@ public class IRRuntimeHelpers {
                         switch (scopeType) {
                             case MODULE_BODY:
                             case CLASS_BODY:
+                                return ((RubyModule)self).getMethodLocation();
                             case METACLASS_BODY:
                                 return (RubyModule)self;
 
