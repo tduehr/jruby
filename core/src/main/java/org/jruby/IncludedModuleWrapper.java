@@ -316,7 +316,7 @@ public class IncludedModuleWrapper extends IncludedModule {
     @Override
     public Collection<String> getConstantNames() {
         Collection<String> names = new HashSet<String>(origin.getConstantMap().size());
-        RubyModule topModule = getMethodLocation().getSuperClass();
+        RubyModule topModule = origin.getMethodLocation().getSuperClass();
 
         for (RubyModule module = origin; module != topModule; module = module.getSuperClass()) {
             module.getConstantNamesInner(names);
@@ -327,7 +327,8 @@ public class IncludedModuleWrapper extends IncludedModule {
 
     @Override
     public void getConstantNamesInner(Collection<String> names) {
-        for (RubyModule module = origin; module != null; module = module.getSuperClass()) {
+        RubyModule topModule = origin.getMethodLocation().getSuperClass();
+        for (RubyModule module = origin; module != topModule; module = module.getSuperClass()) {
             module.getConstantNamesInner(names);
         }
     }
@@ -335,8 +336,9 @@ public class IncludedModuleWrapper extends IncludedModule {
     @Override
     public Collection<String> getConstantNames(boolean includePrivate) {
         Collection<String> names = new HashSet<String>(origin.getConstantMap().size());
+        RubyModule topModule = origin.getMethodLocation().getSuperClass();
 
-        for (RubyModule module = origin; module != null; module = module.getSuperClass()) {
+        for (RubyModule module = origin; module != topModule; module = module.getSuperClass()) {
             module.getConstantNamesInner(names, includePrivate);
         }
 
@@ -345,7 +347,8 @@ public class IncludedModuleWrapper extends IncludedModule {
 
     @Override
     public void getConstantNamesInner(Collection<String> names, boolean includePrivate) {
-        for (RubyModule module = origin; module != null; module = module.getSuperClass()) {
+        RubyModule topModule = origin.getMethodLocation().getSuperClass();
+        for (RubyModule module = origin; module != topModule; module = module.getSuperClass()) {
             module.getConstantNamesInner(names, includePrivate);
         }
     }
