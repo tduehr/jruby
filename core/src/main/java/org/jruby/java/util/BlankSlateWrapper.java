@@ -25,6 +25,11 @@ public class BlankSlateWrapper extends IncludedModuleWrapper {
         super(runtime, superClass, delegate);
     }
 
+    // @Override
+    // public DynamicMethod searchMethodInner(String name) {
+    //     return searchMethodCommon(name);
+    // }
+
     @Override
     public DynamicMethod searchMethodInner(String name) {
         return searchMethodCommon(name);
