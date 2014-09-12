@@ -111,9 +111,9 @@ public class IncludedModuleWrapper extends IncludedModule {
 
     @Override
     public void getPrependedAncestorsInner(List<IRubyObject> list) {
-        RubyModule topModule = origin.getMethodLocation();
+        RubyModule topModule = origin.getMethodLocation().getSuperClass();
 
-        for (RubyModule module = origin.getSuperClass(); module != topModule && module != null; module = module.getSuperClass()) {
+        for (RubyModule module = origin.getSuperClass(); module != topModule; module = module.getSuperClass()) {
             if(module.isPrepended()) {
                 module.getPrependedAncestorsInner(list);
             }
@@ -132,9 +132,9 @@ public class IncludedModuleWrapper extends IncludedModule {
 
         ArrayList<IRubyObject> list = new ArrayList<IRubyObject>();
 
-        RubyModule topModule = origin.getMethodLocation();
+        RubyModule topModule = origin.getMethodLocation().getSuperClass();
 
-        for (RubyModule module = origin.getSuperClass(); module != topModule && module != null; module = module.getSuperClass()) {
+        for (RubyModule module = origin.getSuperClass(); module != topModule; module = module.getSuperClass()) {
             if(module.isPrepended()) {
                 module.getPrependedAncestorsInner(list);
             }
@@ -152,9 +152,9 @@ public class IncludedModuleWrapper extends IncludedModule {
     @Override
     public RubyModule findImplementer(RubyModule clazz) {
         RubyModule retVal = null;
+        RubyModule topModule = getMethodLocation().getSuperClass();
 
-        RubyModule clazzMethodLocation = clazz.getMethodLocation();
-        for (RubyModule module = origin; module != null; module = module.getSuperClass()) {
+        for (RubyModule module = origin; module != topModule; module = module.getSuperClass()) {
             if (!module.isPrepended() && module.isSame(clazz)) {
                 retVal = module.getSuperClass() == null ? this : module;
                 break;
@@ -201,7 +201,8 @@ public class IncludedModuleWrapper extends IncludedModule {
 
     @Override
     public IRubyObject fetchConstant(String name, boolean includePrivate) {
-        for (RubyModule module = origin; module != null; module = module.getSuperClass()) {
+        RubyModule topModule = getMethodLocation().getSuperClass();
+        for (RubyModule module = origin; module != topModule && module != null; module = module.getSuperClass()) {
             IRubyObject value = module.fetchConstant(name, includePrivate);
 
             if (value != null) {
@@ -320,8 +321,9 @@ public class IncludedModuleWrapper extends IncludedModule {
     @Override
     public Collection<String> getConstantNames() {
         Collection<String> names = new HashSet<String>(origin.getConstantMap().size());
+        RubyModule topModule = getMethodLocation().getSuperClass();
 
-        for (RubyModule module = origin; module != null; module = module.getSuperClass()) {
+        for (RubyModule module = origin; module != topModule; module = module.getSuperClass()) {
             module.getConstantNamesInner(names);
         }
 
