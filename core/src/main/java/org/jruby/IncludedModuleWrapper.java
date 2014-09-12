@@ -152,7 +152,7 @@ public class IncludedModuleWrapper extends IncludedModule {
     @Override
     public RubyModule findImplementer(RubyModule clazz) {
         RubyModule retVal = null;
-        RubyModule topModule = getMethodLocation().getSuperClass();
+        RubyModule topModule = origin.getMethodLocation().getSuperClass();
 
         for (RubyModule module = origin; module != topModule; module = module.getSuperClass()) {
             if (!module.isPrepended() && module.isSame(clazz)) {
@@ -201,7 +201,7 @@ public class IncludedModuleWrapper extends IncludedModule {
 
     @Override
     public IRubyObject fetchConstant(String name, boolean includePrivate) {
-        RubyModule topModule = getMethodLocation().getSuperClass();
+        RubyModule topModule = origin.getMethodLocation().getSuperClass();
         for (RubyModule module = origin; module != topModule && module != null; module = module.getSuperClass()) {
             IRubyObject value = module.fetchConstant(name, includePrivate);
 
