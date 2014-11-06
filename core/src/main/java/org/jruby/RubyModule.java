@@ -433,10 +433,6 @@ public class RubyModule extends RubyObject {
         return this;
     }
 
-    public RubyModule getNonPrependedClass() {
-        return this;
-    }
-
     /**
      * Get the base name of this class, or null if it is an anonymous class.
      * 
@@ -2678,7 +2674,7 @@ public class RubyModule extends RubyObject {
                 }
             }
 
-            currentInclusionPoint = proceedWithInclude(currentInclusionPoint.getMethodLocation(), nextModule.getNonIncludedClass());
+            currentInclusionPoint = proceedWithInclude(currentInclusionPoint.getMethodLocation(), nextModule.getDelegate());
         }
     }
 
