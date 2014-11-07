@@ -1856,10 +1856,6 @@ public class RubyModule extends RubyObject {
         return methodLocation != this;
     }
 
-    public boolean hasPrepends() {
-        return methodLocation != this;
-    }
-
     /** rb_mod_ancestors
      *
      */
