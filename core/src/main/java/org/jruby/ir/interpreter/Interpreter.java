@@ -687,6 +687,13 @@ public class Interpreter extends IRTranslator<IRubyObject, IRubyObject> {
 
     public static IRubyObject INTERPRET_METHOD(ThreadContext context, InterpretedIRMethod method,
         IRubyObject self, String name, IRubyObject[] args, Block block) {
+
+        return INTERPRET_METHOD(context, method, self, method.getImplementationClass(), name, args, block);
+    }
+
+    public static IRubyObject INTERPRET_METHOD(ThreadContext context, InterpretedIRMethod method,
+        IRubyObject self, RubyModule clazz, String name, IRubyObject[] args, Block block) {
+
         InterpreterContext ic = method.ensureInstrsReady();
         // FIXME: Consider synthetic methods/module/class bodies to use different method type to eliminate this check
         boolean isSynthetic = method.isSynthetic();
@@ -694,7 +701,7 @@ public class Interpreter extends IRTranslator<IRubyObject, IRubyObject> {
         try {
             if (!isSynthetic) ThreadContext.pushBacktrace(context, name, ic.getFileName(), context.getLine());
 
-            return interpret(context, self, ic, method.getVisibility(), method.getImplementationClass(), name, args, block, null);
+            return interpret(context, self, ic, method.getVisibility(), clazz, name, args, block, null);
         } finally {
             if (!isSynthetic) ThreadContext.popBacktrace(context);
         }

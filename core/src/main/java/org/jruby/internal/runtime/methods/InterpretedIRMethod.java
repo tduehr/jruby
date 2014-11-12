@@ -113,7 +113,7 @@ public class InterpretedIRMethod extends DynamicMethod implements IRMethodArgs, 
         if (jittedMethod != null) {
             return jittedMethod.call(context, self, clazz, name, args, block);
         } else {
-            return Interpreter.INTERPRET_METHOD(context, this, self, name, args, block);
+            return Interpreter.INTERPRET_METHOD(context, this, self, clazz, name, args, block);
         }
     }
 
@@ -128,7 +128,7 @@ public class InterpretedIRMethod extends DynamicMethod implements IRMethodArgs, 
         if (jittedMethod != null) {
             return jittedMethod.call(context, self, clazz, name, block);
         } else {
-            return Interpreter.INTERPRET_METHOD(context, this, self, name, IRubyObject.NULL_ARRAY, block);
+            return Interpreter.INTERPRET_METHOD(context, this, self, clazz, name, IRubyObject.NULL_ARRAY, block);
         }
     }
 
@@ -143,7 +143,7 @@ public class InterpretedIRMethod extends DynamicMethod implements IRMethodArgs, 
         if (jittedMethod != null) {
             return jittedMethod.call(context, self, clazz, name, arg0, block);
         } else {
-            return Interpreter.INTERPRET_METHOD(context, this, self, name, Helpers.arrayOf(arg0), block);
+            return Interpreter.INTERPRET_METHOD(context, this, self, clazz, name, Helpers.arrayOf(arg0), block);
         }
     }
 
@@ -158,7 +158,7 @@ public class InterpretedIRMethod extends DynamicMethod implements IRMethodArgs, 
         if (jittedMethod != null) {
             return jittedMethod.call(context, self, clazz, name, arg0, arg1, block);
         } else {
-            return Interpreter.INTERPRET_METHOD(context, this, self, name, Helpers.arrayOf(arg0, arg1), block);
+            return Interpreter.INTERPRET_METHOD(context, this, self, clazz, name, Helpers.arrayOf(arg0, arg1), block);
         }
     }
 
@@ -173,7 +173,7 @@ public class InterpretedIRMethod extends DynamicMethod implements IRMethodArgs, 
         if (jittedMethod != null) {
             return jittedMethod.call(context, self, clazz, name, arg0, arg1, arg2, block);
         } else {
-            return Interpreter.INTERPRET_METHOD(context, this, self, name, Helpers.arrayOf(arg0, arg1, arg2), block);
+            return Interpreter.INTERPRET_METHOD(context, this, self, clazz, name, Helpers.arrayOf(arg0, arg1, arg2), block);
         }
     }
 
