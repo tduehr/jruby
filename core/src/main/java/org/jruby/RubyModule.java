@@ -330,13 +330,13 @@ public class RubyModule extends RubyObject {
     }
 
     private void checkForCyclicInclude(RubyModule m) throws RaiseException {
-        if (isSame(m.getNonIncludedClass()) || m.hasModuleInHierarchy(this)) {
+        if (isSame(m) || m.hasModuleInHierarchy(this)) {
             throw getRuntime().newArgumentError("cyclic include detected");
         }
     }
 
     protected void checkForCyclicPrepend(RubyModule m) throws RaiseException {
-        if (getNonIncludedClass() == m.getNonIncludedClass()) {
+        if (isSame(m) || m.hasModuleInHierarchy(this)) {
             throw getRuntime().newArgumentError(getName() + " cyclic prepend detected " + m.getName());
         }
     }

@@ -44,10 +44,9 @@ public class IncludedModule extends RubyClass {
         return origin;
     }
 
-    // XXX ??? maybe not getNonIncludedClass()
     @Override
     protected boolean isSame(RubyModule module) {
-        return module == null ? false : origin.isSame(module);
+        return module != null && origin.isSame(module.getNonIncludedClass());
     }
 
    /**
