@@ -102,6 +102,14 @@ module FFI
                 end
               end
 
+              unless libname.start_with?("/")
+                path = Dir["{/usr{/local,},}/lib/**/#{libname}"].first
+                if path
+                  libname = path + libname
+                  retry
+                end
+              end
+
               if ldscript
                 retry
               else
